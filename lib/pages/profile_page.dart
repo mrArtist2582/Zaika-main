@@ -4,6 +4,7 @@ import 'package:food_delivery_app/models/restauarant.dart';
 import 'package:food_delivery_app/pages/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// For kIsWeb
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -35,7 +36,6 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  // ignore: unused_element
   Future<void> _updateProfile(String newUsername, String newEmail,
       String newContact, String newAddress, String newAvatar) async {
     if (newUsername.isEmpty ||
@@ -91,14 +91,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Get the screen width and check if it's a web platform
+    double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Profile",
             style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        leading : IconButton(onPressed: (){
-          Navigator.push(context, MaterialPageRoute(builder: (context)=>HomePage()));
-        }, icon: Icon(Icons.arrow_back_ios,color: Theme.of(context).colorScheme.inversePrimary,)),
+        leading: IconButton(
+            onPressed: () {
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (context) => HomePage()));
+            },
+            icon: Icon(
+              Icons.arrow_back_ios,
+              color: Theme.of(context).colorScheme.inversePrimary,
+            )),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -107,7 +116,8 @@ class _ProfilePageState extends State<ProfilePage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               CircleAvatar(
-                  radius: 50, backgroundImage: AssetImage(selectedAvatar)),
+                  radius: screenWidth > 600 ? 80 : 50, // Adjust size based on screen width
+                  backgroundImage: AssetImage(selectedAvatar)),
               const SizedBox(height: 20),
               _buildProfileContainer("Username", username),
               _buildProfileContainer("Email", email),

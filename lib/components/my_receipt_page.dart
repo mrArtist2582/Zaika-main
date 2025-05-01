@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:food_delivery_app/components/my_button.dart';
 import 'package:food_delivery_app/models/restauarant.dart';
 import 'package:food_delivery_app/pages/home_page.dart';
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html; 
 
 
@@ -208,7 +209,9 @@ Future<void> _generateInvoice(
       _showInvoiceDialog(context, filePath);
     }
   } catch (e) {
-    print("Error generating invoice: $e");
+    if (kDebugMode) {
+      print("Error generating invoice: $e");
+    }
   }
 }
 

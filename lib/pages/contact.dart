@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:food_delivery_app/services/database/firestore.dart'
-    show FirestoreService;
+import 'package:food_delivery_app/services/database/firestore.dart' show FirestoreService;
 import 'package:lottie/lottie.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Contact extends StatefulWidget {
   const Contact({super.key});
@@ -82,6 +82,9 @@ class _ContactState extends State<Contact> {
 
   @override
   Widget build(BuildContext context) {
+    // Check for web or mobile platform
+    final isWeb = kIsWeb;
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Contact",
@@ -90,13 +93,16 @@ class _ContactState extends State<Contact> {
                 fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).colorScheme.primary,
         centerTitle: true,
-        leading: IconButton(onPressed: (){
-          Navigator.pop(context);
-        }, icon: Icon(Icons.arrow_back_ios, color: Theme.of(context).colorScheme.inversePrimary,)),
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: Icon(Icons.arrow_back_ios, color: Theme.of(context).colorScheme.inversePrimary),
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(isWeb ? 32.0 : 16.0), // Larger padding for web
           child: Form(
             key: _formKey,
             child: Column(
@@ -104,16 +110,14 @@ class _ContactState extends State<Contact> {
               children: [
                 _buildTextField("Name", _nameController),
                 _buildTextField("Email", _emailController, email: true),
-                _buildTextField("Contact Number", _phoneController,
-                    phone: true),
-                _buildTextField("Description", _descriptionController,
-                    maxLines: 4),
-                SizedBox(height: 20),
+                _buildTextField("Contact Number", _phoneController, phone: true),
+                _buildTextField("Description", _descriptionController, maxLines: 4),
+                SizedBox(height: isWeb ? 30 : 20), // Larger gap on web
                 Center(
                   child: GestureDetector(
                     onTap: _isSubmitting ? null : _submitForm,
                     child: Container(
-                      width: double.infinity,
+                      width: isWeb ? 400 : double.infinity, // Fixed width for web
                       padding: EdgeInsets.symmetric(vertical: 15),
                       decoration: BoxDecoration(
                         color: _isSubmitting ? Colors.grey : Colors.blue,

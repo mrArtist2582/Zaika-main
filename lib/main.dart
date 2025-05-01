@@ -9,6 +9,7 @@
   import 'package:food_delivery_app/intro/splash_screen.dart'; 
   import 'package:food_delivery_app/models/restauarant.dart';
   import 'package:food_delivery_app/themes/theme_provider.dart';
+  import 'package:food_delivery_app/pages/admin/admin_login.dart';
 
   void main() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -41,7 +42,11 @@
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: Provider.of<ThemeProvider>(context).themeData,
-        home: const SplashScreen(), // Always start with SplashScreen
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const SplashScreen(),
+          '/admin': (context) => const AdminLogin(),
+        },
       );
     }
   }

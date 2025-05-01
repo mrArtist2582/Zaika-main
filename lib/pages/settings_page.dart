@@ -7,6 +7,7 @@ import 'package:food_delivery_app/pages/contact.dart';
 import 'package:food_delivery_app/services/auth/login_or_register.dart';
 import 'package:food_delivery_app/themes/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:food_delivery_app/pages/admin/admin_login.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -50,15 +51,44 @@ class SettingsPage extends StatelessWidget {
                       color: Theme.of(context).colorScheme.inversePrimary,
                     ),
                   ),
-                  Consumer<ThemeProvider>(
-                    builder: (context, themeProvider, child) {
-                      return CupertinoSwitch(
-                        value: themeProvider.isDarkMode,
-                        onChanged: (value) {
-                          themeProvider.toggleTheme();
-                        },
-                      );
-                    },
+                  Icon(
+                    CupertinoIcons.moon_stars,
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Admin Login Button
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminLogin()),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondary,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              margin: const EdgeInsets.only(top: 10, left: 25, right: 25),
+              padding: const EdgeInsets.all(25),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Admin Panel",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.inversePrimary,
+                    ),
+                  ),
+                  Icon(
+                    Icons.admin_panel_settings,
+                    color: Theme.of(context).colorScheme.inversePrimary,
                   ),
                 ],
               ),

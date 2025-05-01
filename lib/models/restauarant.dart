@@ -1,14 +1,21 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 import 'package:food_delivery_app/models/cart_item.dart';
 
 import 'food.dart';
 
 class Restauarant extends ChangeNotifier {
-  //list of food menu
-  final List<Food> _menu = [
+  // Key for storing custom menu items in SharedPreferences
+  // ignore: constant_identifier_names
+  static const String CUSTOM_MENU_KEY = 'custom_menu_items';
+  
+  //list of food menu (default items)
+  final List<Food> _defaultMenu = [
 // burgers
 
     //VEG burger
@@ -251,217 +258,206 @@ class Restauarant extends ChangeNotifier {
       price: 150,
       catagory: FoodCatagory.pizza,
       availableAddons: [
-        Addon(price: 30, name: "Extra Cheese"),
-        Addon(price: 40, name: "Olives"),
-        Addon(price: 35, name: "Cherry Tomatoes"),
+        Addon(price: 25, name: "Extra Cheese"),
+        Addon(price: 30, name: "Fresh Basil"),
+        Addon(price: 20, name: "Cherry Tomatoes"),
       ],
     ),
 
-    // Veggie supreme pizza
+    // pepperoni pizza
     Food(
-      name: "Veggie Supreme Pizza",
+      name: "Pepperoni Pizza",
       description:
-          "A delightful pizza loaded with a medley of fresh vegetables, including bell peppers.",
-      imagePath: "lib/images/Pizza/veggie_supreme_pizza.jpg",
-      price: 280,
+          "A classic pizza topped with zesty tomato sauce, mozzarella cheese, and crispy pepperoni.",
+      imagePath: "lib/images/Pizza/Pepproni_pizza.jpg",
+      price: 160,
       catagory: FoodCatagory.pizza,
       availableAddons: [
-        Addon(price: 30, name: "Extra Cheese"),
-        Addon(price: 40, name: "Jalapeños"),
-        Addon(price: 35, name: "Pineapple"),
+        Addon(price: 25, name: "Extra Cheese"),
+        Addon(price: 25, name: "Extra Pepperoni"),
+        Addon(price: 15, name: "Bell Peppers"),
       ],
     ),
 
-    // Chicago pizza
+    // Supreme pizza
     Food(
-      name: "Chicago Pizza",
+      name: "Supreme Pizza",
       description:
-          "A hearty deep-dish pizza with a thick, buttery crust filled with layers of rich tomato sauce.",
-      imagePath: "lib/images/Pizza/Chicago_pizza.png",
-      price: 350,
+          "A fully loaded pizza with a rich tomato sauce base, generous cheese, pepperoni.",
+      imagePath: "lib/images/Pizza/Supreme_pizza.jpg",
+      price: 180,
       catagory: FoodCatagory.pizza,
       availableAddons: [
-        Addon(price: 40, name: "Italian Sausage"),
-        Addon(price: 50, name: "Extra Mozzarella"),
-        Addon(price: 30, name: "Grilled Chicken"),
+        Addon(price: 20, name: "Extra Mushroom"),
+        Addon(price: 20, name: "Extra Olives"),
+        Addon(price: 25, name: "Extra Meat"),
       ],
     ),
 
-    // BBQ pizza
-
+    // Vagetian pizza
     Food(
-      name: "BBQ Pizza",
+      name: "Veggie Pizza",
       description:
-          "A delicious pizza featuring a smoky BBQ sauce base, topped with tender grilled chicken.",
-      imagePath: "lib/images/Pizza/Bbq_pizza.png",
-      price: 300,
+          "A delicious and colorful vegetarian pizza loaded with seasonal vegetables.",
+      imagePath: "lib/images/Pizza/Vegetable_pizza.jpg",
+      price: 170,
       catagory: FoodCatagory.pizza,
       availableAddons: [
-        Addon(price: 40, name: "Extra BBQ Sauce"),
-        Addon(price: 50, name: "Bacon Bits"),
-        Addon(price: 30, name: "Grilled Mushrooms"),
+        Addon(price: 20, name: "Extra Cheese"),
+        Addon(price: 15, name: "Bell Peppers"),
+        Addon(price: 15, name: "Corn"),
       ],
     ),
 
-    //  Four cheese pizza
+    // White Sauce pizza
     Food(
-      name: "Four Cheese Pizza ",
+      name: "White Sauce Pizza",
       description:
-          "A rich and flavorful pizza topped with a blend of four delicious cheeses.",
-      imagePath:
-          "lib/images/Pizza/Four_cheese_pizza_(Quattro _Formaggi) _pizza.png",
-      price: 320,
+          "A gourmet pizza made with creamy white garlic sauce instead of traditional tomato sauce.",
+      imagePath: "lib/images/Pizza/White_pizza.jpg",
+      price: 190,
       catagory: FoodCatagory.pizza,
       availableAddons: [
-        Addon(price: 40, name: "Extra Mozzarella"),
-        Addon(price: 50, name: "Grilled Chicken"),
-        Addon(price: 35, name: "Olives"),
+        Addon(price: 25, name: "Extra Cheese"),
+        Addon(price: 30, name: "Sliced Garlic"),
+        Addon(price: 35, name: "Arugula"),
       ],
     ),
 
 // desserts
 
-    // chessecake
+    // CHOCO
     Food(
-      name: "Cheesecake",
+      name: "Chocolate Brownie",
       description:
-          "A creamy and rich cheesecake with a buttery graham cracker crust.",
-      imagePath: "lib/images/Desserts/Cheesecake.jpg",
-      price: 180,
-      catagory: FoodCatagory.desserts,
-      availableAddons: [
-        Addon(price: 20, name: "Chocolate Sauce"),
-        Addon(price: 25, name: "Strawberry Compote"),
-        Addon(price: 15, name: "Whipped Cream"),
-      ],
-    ),
-
-    // Chocolate lava cake
-
-    Food(
-      name: "Chocolate Lava Cake",
-      description:
-          "A decadent, warm chocolate cake with a molten center of rich, gooey chocolate.",
-      imagePath: "lib/images/Desserts/Chocolate_lava_cake.jpeg",
-      price: 200,
-      catagory: FoodCatagory.desserts,
-      availableAddons: [
-        Addon(price: 25, name: "Vanilla Ice Cream"),
-        Addon(price: 20, name: "Chocolate Sauce"),
-        Addon(price: 30, name: "Caramel Sauce"),
-      ],
-    ),
-
-    // fruit tart
-
-    Food(
-      name: "Fruit Tart",
-      description:
-          "A delicious tart with a buttery, crisp pastry crust, filled with smooth custard.",
-      imagePath: "lib/images/Desserts/Fruit_tart.jpg",
-      price: 220,
-      catagory: FoodCatagory.desserts,
-      availableAddons: [
-        Addon(price: 20, name: "Whipped Cream"),
-        Addon(price: 25, name: "Chocolate Drizzle"),
-        Addon(price: 15, name: "Almonds"),
-      ],
-    ),
-
-    // Gulab jamun
-
-    Food(
-      name: "Gulab Jamun",
-      description:
-          "A popular Indian dessert made of deep-fried dough balls soaked in a fragrant rose-flavored sugar syrup.",
-      imagePath: "lib/images/Desserts/Gulab_jamun.jpg",
-      price: 150,
-      catagory: FoodCatagory.desserts,
-      availableAddons: [
-        Addon(price: 20, name: "Vanilla Ice Cream"),
-        Addon(price: 15, name: "Chopped Pistachios"),
-        Addon(price: 25, name: "Chocolate Sauce"),
-      ],
-    ),
-
-    // tiramisu
-
-    Food(
-      name: "Tiramisu",
-      description:
-          "A classic Italian dessert made with layers of coffee-soaked ladyfingers.",
-      imagePath: "lib/images/Desserts/Tiramisu.jpg",
-      price: 250,
-      catagory: FoodCatagory.desserts,
-      availableAddons: [
-        Addon(price: 20, name: "Cocoa Powder"),
-        Addon(price: 25, name: "Whipped Cream"),
-        Addon(price: 30, name: "Chocolate Shavings"),
-      ],
-    ),
-
-// drinks
-
-    // iced coffee
-
-    Food(
-      name: "Iced Coffee",
-      description:
-          "A refreshing and energizing beverage made with chilled brewed coffee.",
-      imagePath: "lib/images/Drinks/Iced_coffee.jpg",
+          "A rich and fudgy chocolate brownie, served warm with a scoop of vanilla ice cream.",
+      imagePath: "lib/images/Desserts/Choco_brownie.jpeg",
       price: 120,
-      catagory: FoodCatagory.drinks,
+      catagory: FoodCatagory.desserts,
       availableAddons: [
-        Addon(price: 20, name: "Extra Espresso Shot"),
-        Addon(price: 15, name: "Vanilla Syrup"),
-        Addon(price: 25, name: "Whipped Cream"),
+        Addon(price: 15, name: "Extra Ice Cream"),
+        Addon(price: 15, name: "Chocolate Sauce"),
+        Addon(price: 10, name: "Nuts"),
       ],
     ),
 
-    // Lemon mint cooler
+    // cookie
     Food(
-      name: "Lemon Mint Cooler",
+      name: "Chocolate Chip Cookie",
       description:
-          "A refreshing and tangy drink made with freshly squeezed lemon juice.",
-      imagePath: "lib/images/Drinks/Lemon_mint_cooler.jpg",
+          "A large, freshly baked chocolate chip cookie with a soft center and crisp edges.",
+      imagePath: "lib/images/Desserts/Cookie.jpeg",
+      price: 80,
+      catagory: FoodCatagory.desserts,
+      availableAddons: [
+        Addon(price: 15, name: "Ice Cream Scoop"),
+        Addon(price: 10, name: "Caramel Drizzle"),
+        Addon(price: 10, name: "Whipped Cream"),
+      ],
+    ),
+
+    // ICE
+    Food(
+      name: "Ice Cream Sundae",
+      description:
+          "Three scoops of premium ice cream topped with chocolate sauce, whipped cream, and a cherry.",
+      imagePath: "lib/images/Desserts/Ice_cream.jpeg",
       price: 100,
-      catagory: FoodCatagory.drinks,
+      catagory: FoodCatagory.desserts,
       availableAddons: [
-        Addon(price: 15, name: "Extra Mint"),
-        Addon(price: 10, name: "Lemon Slice"),
-        Addon(price: 20, name: "Honey"),
+        Addon(price: 15, name: "Extra Scoop"),
+        Addon(price: 10, name: "Hot Fudge"),
+        Addon(price: 15, name: "Brownie Pieces"),
       ],
     ),
 
-    // mango lassi
-
+    // Molten
     Food(
-      name: "Mango Lassi",
+      name: "Molten Lava Cake",
       description:
-          "A creamy and delicious traditional Indian yogurt-based drink made with fresh mango pulp.",
-      imagePath: "lib/images/Drinks/Mango_lassi.jpeg",
-      price: 130,
-      catagory: FoodCatagory.drinks,
+          "A warm chocolate cake with a gooey, molten chocolate center, served with vanilla ice cream.",
+      imagePath: "lib/images/Desserts/Molten_lava_cake.jpg",
+      price: 140,
+      catagory: FoodCatagory.desserts,
       availableAddons: [
-        Addon(price: 20, name: "Honey"),
-        Addon(price: 15, name: "Chia Seeds"),
-        Addon(price: 25, name: "Pineapple"),
+        Addon(price: 15, name: "Extra Ice Cream"),
+        Addon(price: 10, name: "Raspberry Sauce"),
+        Addon(price: 10, name: "Mint Garnish"),
       ],
     ),
 
-    // strawberry milk shake
-
+    // mousse
     Food(
-      name: "Strawberry Milkshake",
+      name: "Chocolate Mousse",
       description:
-          "A creamy and indulgent milkshake made with fresh strawberries, vanilla ice cream, and milk.",
-      imagePath: "lib/images/Drinks/Strawberry_milkshake.jpeg",
-      price: 150,
+          "Light and airy chocolate mousse, topped with whipped cream and chocolate shavings.",
+      imagePath: "lib/images/Desserts/Mousse.jpeg",
+      price: 110,
+      catagory: FoodCatagory.desserts,
+      availableAddons: [
+        Addon(price: 15, name: "Fresh Berries"),
+        Addon(price: 10, name: "Chocolate Sauce"),
+        Addon(price: 15, name: "Almond Brittle"),
+      ],
+    ),
+
+    // chocolate milk
+    Food(
+      name: "Chocolate Milkshake",
+      description:
+          "A rich and creamy chocolate milkshake topped with whipped cream and chocolate syrup.",
+      imagePath: "lib/images/Drinks/Choco_milks.jpeg",
+      price: 80,
       catagory: FoodCatagory.drinks,
       availableAddons: [
-        Addon(price: 20, name: "Extra Strawberries"),
-        Addon(price: 25, name: "Chocolate Syrup"),
-        Addon(price: 15, name: "Whipped Cream"),
+        Addon(price: 10, name: "Extra Chocolate"),
+        Addon(price: 15, name: "Cherry Topping"),
+        Addon(price: 20, name: "Brownie Pieces"),
+      ],
+    ),
+
+    // Cranberry
+    Food(
+      name: "Cranberry Juice",
+      description:
+          "Refreshing cranberry juice served over ice with a slice of lime.",
+      imagePath: "lib/images/Drinks/Cranberry.jpg",
+      price: 70,
+      catagory: FoodCatagory.drinks,
+      availableAddons: [
+        Addon(price: 10, name: "Extra Lime"),
+        Addon(price: 15, name: "Mint Leaves"),
+        Addon(price: 10, name: "Soda Splash"),
+      ],
+    ),
+
+    // fresh lime
+    Food(
+      name: "Fresh Lime Soda",
+      description:
+          "A refreshing drink made with fresh lime juice, soda water, and a touch of sugar or salt.",
+      imagePath: "lib/images/Drinks/Fresh_lime.jpg",
+      price: 60,
+      catagory: FoodCatagory.drinks,
+      availableAddons: [
+        Addon(price: 10, name: "Extra Lime"),
+        Addon(price: 5, name: "Sugar/Salt Rim"),
+        Addon(price: 15, name: "Mint Leaves"),
+      ],
+    ),
+
+    // orange juice
+    Food(
+      name: "Fresh Orange Juice",
+      description:
+          "Freshly squeezed orange juice served over ice for a healthy and refreshing drink.",
+      imagePath: "lib/images/Drinks/Orange_juice.jpeg",
+      price: 90,
+      catagory: FoodCatagory.drinks,
+      availableAddons: [
+        Addon(price: 15, name: "Honey"),
+        Addon(price: 10, name: "Mint Garnish"),
+        Addon(price: 5, name: "Lemon Slice"),
       ],
     ),
 
@@ -481,17 +477,82 @@ class Restauarant extends ChangeNotifier {
       ],
     ),
   ];
+
+  // Combined menu (default + custom items)
+  List<Food> _menu = [];
+  
   //  user Cart
   final List<CartItem> _cart = [];
 
   // delivery address
-
   String _deliveryAddress = '';
+
+  // Constructor - load custom menu items when the model is created
+  Restauarant() {
+    // Initialize menu with default items before loading custom items
+    _menu = List.from(_defaultMenu);
+    _loadCustomMenuItems();
+  }
+
+  // Load custom menu items from SharedPreferences
+  Future<void> _loadCustomMenuItems() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final customMenuJson = prefs.getStringList(CUSTOM_MENU_KEY) ?? [];
+      
+      final customMenuItems = customMenuJson
+          .map((itemJson) => Food.fromMap(json.decode(itemJson)))
+          .toList();
+      
+      // Combine default menu with custom items
+      _menu = [..._defaultMenu, ...customMenuItems];
+      notifyListeners();
+      
+      if (kDebugMode) {
+        print('Loaded ${customMenuItems.length} custom menu items');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error loading custom menu items: $e');
+      }
+      // If there's an error, just use the default menu
+      _menu = List.from(_defaultMenu);
+    }
+  }
+
+  // Save custom menu items to SharedPreferences
+  Future<void> _saveCustomMenuItems() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Filter out default menu items to only save custom items
+      final customItems = _menu.where((item) => !_isDefaultMenuItem(item)).toList();
+      
+      final customMenuJson = customItems
+          .map((item) => json.encode(item.toMap()))
+          .toList();
+      
+      await prefs.setStringList(CUSTOM_MENU_KEY, customMenuJson);
+      
+      if (kDebugMode) {
+        print('Saved ${customItems.length} custom menu items');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error saving custom menu items: $e');
+      }
+    }
+  }
+
+  // Helper method to check if a food item is from the default menu
+  bool _isDefaultMenuItem(Food food) {
+    return _defaultMenu.any((defaultItem) => 
+      defaultItem.name == food.name && 
+      defaultItem.imagePath == food.imagePath);
+  }
+  
   /*  
-
           Getter
-
-
    */
 
   List<Food> get menu => _menu;
@@ -641,5 +702,27 @@ class Restauarant extends ChangeNotifier {
     return addons
         .map((addon) => "${addon.name} (${_formatPrice(addon.price)})")
         .join(", ");
+  }
+
+  // Update the add, remove, and update food methods to save changes
+  void addFood(Food food) {
+    _menu.add(food);
+    _saveCustomMenuItems(); // Save changes
+    notifyListeners();
+  }
+
+  void removeFood(Food food) {
+    _menu.remove(food);
+    _saveCustomMenuItems(); // Save changes
+    notifyListeners();
+  }
+
+  void updateFood(Food oldFood, Food newFood) {
+    final index = _menu.indexOf(oldFood);
+    if (index != -1) {
+      _menu[index] = newFood;
+      _saveCustomMenuItems(); // Save changes
+      notifyListeners();
+    }
   }
 }

@@ -9,6 +9,63 @@ class MyCartTile extends StatelessWidget {
 
   const MyCartTile({super.key, required this.cartItem});
 
+  // Helper method to build the appropriate image widget
+  Widget _buildFoodImage(String imagePath) {
+    // Check if the path is a URL
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Use Image.network for URLs
+      return Image.network(
+        imagePath,
+        height: 100,
+        width: 100,
+        fit: BoxFit.cover,
+        // Error handling
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Error loading network image in cart: $error');
+          return Container(
+            height: 100,
+            width: 100,
+            color: Colors.grey[300],
+            child: const Icon(Icons.image_not_supported, color: Colors.grey),
+          );
+        },
+        // Loading indicator
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 100,
+            width: 100,
+            color: Colors.grey[200],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      // Use Image.asset for local asset paths
+      return Image.asset(
+        imagePath,
+        height: 100,
+        width: 100,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Error loading asset image in cart: $error');
+          return Container(
+            height: 100,
+            width: 100,
+            color: Colors.grey[300],
+            child: const Icon(Icons.broken_image, color: Colors.grey),
+          );
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<Restauarant>(
@@ -28,8 +85,7 @@ class MyCartTile extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 10, left: 10),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(cartItem.food.imagePath,
-                        height: 100, width: 100),
+                    child: _buildFoodImage(cartItem.food.imagePath),
                   ),
                 ),
 

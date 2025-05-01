@@ -39,6 +39,72 @@ class _FoodPageState extends State<FoodPage> {
     context.read<Restauarant>().addToCart(food, currentlySelectedAddons);
   }
 
+  // Helper method to build the appropriate image widget
+  Widget _buildFoodImage(String imagePath) {
+    // Check if the path is a URL
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Use Image.network for URLs
+      return Image.network(
+        imagePath,
+        width: double.infinity,
+        height: 250,
+        fit: BoxFit.cover,
+        // Error handling
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Error loading network image: $error');
+          return Container(
+            width: double.infinity,
+            height: 250,
+            color: Colors.grey[300],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.image_not_supported, color: Colors.grey, size: 50),
+                const SizedBox(height: 10),
+                Text('Failed to load image', style: TextStyle(color: Colors.grey[600])),
+              ],
+            ),
+          );
+        },
+        // Loading indicator
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            width: double.infinity,
+            height: 250,
+            color: Colors.grey[200],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      // Use Image.asset for local asset paths
+      return Image.asset(
+        imagePath,
+        width: double.infinity,
+        height: 250,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Error loading asset image: $error');
+          return Container(
+            width: double.infinity,
+            height: 250,
+            color: Colors.grey[300],
+            child: const Center(
+              child: Icon(Icons.broken_image, color: Colors.grey, size: 50),
+            ),
+          );
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -49,7 +115,7 @@ class _FoodPageState extends State<FoodPage> {
             child: Column(
               children: [
                 // Food image
-                Image.asset(widget.food.imagePath),
+                _buildFoodImage(widget.food.imagePath),
                 Padding(
                   padding: const EdgeInsets.all(25.0),
                   child: Column(

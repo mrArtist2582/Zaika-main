@@ -21,6 +21,157 @@ class _AddonSelectionBottomSheetState extends State<AddonSelectionBottomSheet> {
   double get totalAddonPrice =>
       selectedAddons.fold(0, (sum, addon) => sum + addon.price);
 
+  // Helper method to build the appropriate image widget
+  Widget _buildFoodImage(String imagePath) {
+    // Universal fallback image to use when everything else fails
+    const String universalFallbackUrl = 'https://i.imgur.com/CsCgN7p.png';
+    
+    // Check if the path is a URL
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Use Image.network for URLs
+      return Image.network(
+        imagePath,
+        height: 70,
+        width: 70,
+        fit: BoxFit.cover,
+        // Error handling
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Error loading network image in bottom sheet: $error');
+          return Image.network(
+            universalFallbackUrl,
+            height: 70,
+            width: 70,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 70,
+                width: 70,
+                color: Colors.grey[300],
+                child: const Icon(Icons.image_not_supported, color: Colors.grey),
+              );
+            },
+          );
+        },
+        // Loading indicator
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 70,
+            width: 70,
+            color: Colors.grey[200],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2.0,
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      // Check if this is one of the problematic pizza, drinks, or desserts images
+      if ((imagePath.contains('Pizza') || imagePath.contains('Drinks') || imagePath.contains('Desserts')) && _getMissingPizzaReplacement(imagePath) != null) {
+        // Return a network image replacement
+        return Image.network(
+          _getMissingPizzaReplacement(imagePath)!,
+          height: 70,
+          width: 70,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint('Error loading fallback image in bottom sheet: $error');
+            return Image.network(
+              universalFallbackUrl,
+              height: 70,
+              width: 70,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 70,
+                  width: 70,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                );
+              },
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              height: 70,
+              width: 70,
+              color: Colors.grey[200],
+              child: Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                      : null,
+                  strokeWidth: 2.0,
+                ),
+              ),
+            );
+          },
+        );
+      }
+      
+      // Use Image.asset for other local asset paths
+      return Image.asset(
+        imagePath,
+        height: 70,
+        width: 70,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Error loading asset image in bottom sheet: $error');
+          return Image.network(
+            universalFallbackUrl,
+            height: 70,
+            width: 70,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 70,
+                width: 70,
+                color: Colors.grey[300],
+                child: const Icon(Icons.broken_image, color: Colors.grey),
+              );
+            },
+          );
+        },
+      );
+    }
+  }
+
+  // Helper method to provide fallback URLs for known missing images
+  String? _getMissingPizzaReplacement(String originalPath) {
+    // Map of original paths to fallback URLs - using direct image URLs to avoid redirects
+    final Map<String, String> replacements = {
+      // Pizza replacements
+      'lib/images/Pizza/White_pizza.jpg': 'https://i.imgur.com/gQZSBFY.jpg',
+      'lib/images/Pizza/Pepproni_pizza.jpg': 'https://i.imgur.com/BzfG6qQ.jpg',
+      'lib/images/Pizza/Supreme_pizza.jpg': 'https://i.imgur.com/KY1mVxd.jpg',
+      'lib/images/Pizza/Vegetable_pizza.jpg': 'https://i.imgur.com/2b0qfoB.jpg',
+      'lib/images/Pizza/Margherita_pizza.jpg': 'https://i.imgur.com/xLs2ITZ.jpg',
+      // Drink replacements
+      'lib/images/Drinks/Orange_juice.jpeg': 'https://i.imgur.com/a7pKANL.jpg',
+      'lib/images/Drinks/Choco_milks.jpeg': 'https://i.imgur.com/bNDUlc9.jpg',
+      'lib/images/Drinks/Cranberry.jpg': 'https://i.imgur.com/uKmw1nK.jpg',
+      'lib/images/Drinks/Fresh_lime.jpg': 'https://i.imgur.com/TkXWACX.jpg',
+      // Dessert replacements
+      'lib/images/Desserts/Molten_lava_cake.jpg': 'https://i.imgur.com/BU3boH3.jpg',
+      'lib/images/Desserts/Cheese_cake.jpg': 'https://i.imgur.com/OJyoN8H.jpg',
+      'lib/images/Desserts/Gulab_jamun.jpg': 'https://i.imgur.com/b5zK1hd.jpg',
+      'lib/images/Desserts/Rasmalai.jpg': 'https://i.imgur.com/jZEaY3q.jpg',
+      'lib/images/Desserts/Oreo_shake.jpg': 'https://i.imgur.com/s84rCUz.jpg',
+      'lib/images/Desserts/Choco_brownie.jpeg': 'https://i.imgur.com/l6RAPzW.jpg',
+      'lib/images/Desserts/Cookie.jpeg': 'https://i.imgur.com/7oCVJgF.jpg',
+      'lib/images/Desserts/Ice_cream.jpeg': 'https://i.imgur.com/kfqJzMV.jpg',
+      'lib/images/Desserts/Mousse.jpeg': 'https://i.imgur.com/Hvq53aj.jpg',
+    };
+    
+    return replacements[originalPath];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -57,8 +208,7 @@ class _AddonSelectionBottomSheetState extends State<AddonSelectionBottomSheet> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(widget.food.imagePath,
-                      height: 70, width: 70, fit: BoxFit.cover),
+                  child: _buildFoodImage(widget.food.imagePath),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
@@ -77,27 +227,37 @@ class _AddonSelectionBottomSheetState extends State<AddonSelectionBottomSheet> {
 
             // Add-ons Selection
             Expanded(
-              child: ListView(
-                children: widget.food.availableAddons.map((addon) {
-                  return CheckboxListTile(
-                    title:
-                        Text(addon.name, style: const TextStyle(fontSize: 14)),
-                    subtitle: Text('₹${addon.price}',
-                        style: const TextStyle(color: Colors.green)),
-                    value: selectedAddons.contains(addon),
-                    onChanged: (value) {
-                      setState(() {
-                        if (selectedAddons.contains(addon)) {
-                          selectedAddons.remove(addon);
-                        } else {
-                          selectedAddons.add(addon);
-                        }
-                      });
-                    },
-                    activeColor: Theme.of(context).colorScheme.primary,
-                  );
-                }).toList(),
-              ),
+              child: widget.food.availableAddons.isEmpty
+                  ? Center(
+                      child: Text(
+                        "No add-ons available for this item",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      children: widget.food.availableAddons.map((addon) {
+                        return CheckboxListTile(
+                          title:
+                              Text(addon.name, style: const TextStyle(fontSize: 14)),
+                          subtitle: Text('₹${addon.price}',
+                              style: const TextStyle(color: Colors.green)),
+                          value: selectedAddons.contains(addon),
+                          onChanged: (value) {
+                            setState(() {
+                              if (selectedAddons.contains(addon)) {
+                                selectedAddons.remove(addon);
+                              } else {
+                                selectedAddons.add(addon);
+                              }
+                            });
+                          },
+                          activeColor: Theme.of(context).colorScheme.primary,
+                        );
+                      }).toList(),
+                    ),
             ),
 
             // Add to Cart Button

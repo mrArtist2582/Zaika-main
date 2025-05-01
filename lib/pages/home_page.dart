@@ -1,8 +1,8 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:food_delivery_app/components/my_current_location.dart';
 import 'package:food_delivery_app/components/my_description_box.dart';
-import 'package:food_delivery_app/components/my_drawer.dart';
 import 'package:food_delivery_app/components/my_food_tile.dart';
 import 'package:food_delivery_app/components/my_sliver_app_bar.dart';
 import 'package:food_delivery_app/components/my_tab_bar.dart';
@@ -10,9 +10,9 @@ import 'package:food_delivery_app/models/food.dart';
 import 'package:food_delivery_app/models/restauarant.dart';
 import 'package:food_delivery_app/pages/cart_page.dart';
 import 'package:food_delivery_app/pages/food_page.dart';
+import 'package:food_delivery_app/pages/profile_creation_page.dart';
 import 'package:food_delivery_app/pages/profile_page.dart';
 import 'package:food_delivery_app/pages/settings_page.dart';
-import 'package:food_delivery_app/pages/profile_creation_page.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,16 +23,14 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _index = 0;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController =
-        TabController(length: FoodCatagory.values.length, vsync: this);
+    _tabController = TabController(length: FoodCatagory.values.length, vsync: this);
     _checkFirstTimeUser();
   }
 
@@ -40,11 +38,11 @@ class _HomePageState extends State<HomePage>
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool? isProfileCreated = prefs.getBool('isProfileCreated');
 
-    if (!isProfileCreated!) {
+    if (!isProfileCreated! && (Platform.isAndroid || Platform.isIOS)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => ProfileCreationPage()),
+          MaterialPageRoute(builder: (context) => const ProfileCreationPage()),
         );
       });
     }
@@ -57,50 +55,103 @@ class _HomePageState extends State<HomePage>
   }
 
   final List<Widget> _pages = [
-    HomeContent(),
-    CartPage(),
-    ProfilePage(),
-    SettingsPage(),
+    const HomeContent(),
+    const CartPage(),
+    const ProfilePage(),
+    const SettingsPage(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final isWebOrDesktop = kIsWeb || Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
     return Scaffold(
-      
       backgroundColor: Theme.of(context).colorScheme.surface,
-      bottomNavigationBar: CurvedNavigationBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        buttonBackgroundColor: Theme.of(context).colorScheme.surface,
-        color: Theme.of(context).colorScheme.primary,
-        items: [
-          Icon(Icons.home, color: Theme.of(context).colorScheme.inversePrimary),
-          Consumer<Restauarant>(
-            builder: (context, restaurant, child) {
-              final cartItemCount = restaurant.cart.length;
-              return cartItemCount > 0
-                  ? Badge(
-                      label: Text(cartItemCount.toString()),
-                      child: Icon(Icons.shopping_cart,
-                          color: Theme.of(context).colorScheme.inversePrimary),
-                    )
-                  : Icon(Icons.shopping_cart,
-                      color: Theme.of(context).colorScheme.inversePrimary);
-            },
-          ),
-          Icon(Icons.person,
-              color: Theme.of(context).colorScheme.inversePrimary),
-          Icon(Icons.settings,
-              color: Theme.of(context).colorScheme.inversePrimary),
+      appBar: AppBar(
+        leading: Image.asset('assets/bgmain.png', width: 60, height: 50),
+        title: const Text('Zaika',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            )),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        actions: [
+          if (isWebOrDesktop)
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.home),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = 0;
+                    });
+                  },
+                ),
+                const Text('Home'),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = 1;
+                    });
+                  },
+                ),
+                const Text('Cart'),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = 2;
+                    });
+                  },
+                ),
+                const Text('Profile'),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = 3;
+                    });
+                  },
+                ),
+                const Text('Settings'),
+                const SizedBox(width: 16),
+              ],
+            ),
         ],
-        index: _index,
-        onTap: (index) {
-          setState(() {
-            _index = index;
-          });
-        },
       ),
-      drawer: MyDrawer(),
-      body: _pages[_index],
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: isWebOrDesktop
+          ? null
+          : BottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.shopping_cart),
+                  label: 'Cart',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: 'Profile',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.settings),
+                  label: 'Settings',
+                ),
+              ],
+            ),
     );
   }
 }
@@ -131,31 +182,33 @@ class HomeContent extends StatelessWidget {
           ),
         ],
         body: Consumer<Restauarant>(
-          builder: (context, restaurant, child) => TabBarView(
-            controller: DefaultTabController.of(context),
-            children: FoodCatagory.values.map((category) {
-              List<Food> categoryMenu = restaurant.menu
-                  .where((food) => food.catagory == category)
-                  .toList();
-              return ListView.builder(
-                itemCount: categoryMenu.length,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                itemBuilder: (context, index) {
-                  final food = categoryMenu[index];
-                  return MyFoodTile(
-                    food: food,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => FoodPage(food: food),
+          builder: (context, restaurant, child) {
+            return TabBarView(
+              controller: DefaultTabController.of(context),
+              children: FoodCatagory.values.map((category) {
+                List<Food> categoryMenu = restaurant.menu
+                    .where((food) => food.catagory == category)
+                    .toList();
+                return ListView.builder(
+                  itemCount: categoryMenu.length,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  itemBuilder: (context, index) {
+                    final food = categoryMenu[index];
+                    return MyFoodTile(
+                      food: food,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FoodPage(food: food),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            }).toList(),
-          ),
+                    );
+                  },
+                );
+              }).toList(),
+            );
+          },
         ),
       ),
     );

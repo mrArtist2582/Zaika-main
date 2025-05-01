@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html; // Only used if kIsWeb
 
 class CartPage extends StatefulWidget {
