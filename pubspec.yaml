@@ -53,6 +53,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/
     - assets/D_m.json
     - assets/submitted.json
     - assets/deli.json
@@ -64,6 +65,7 @@ flutter:
     - assets/bgmain.png
     - assets/google.png
     - assets/avatars/
+    - lib/images/
     - lib/images/Burger/
     - lib/images/Desserts/
     - lib/images/Drinks/

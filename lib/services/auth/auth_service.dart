@@ -4,6 +4,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  // Initialize GoogleSignIn without client ID for development
+  // Only configure client ID in production builds
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // 🔹 Sign in with Google
@@ -11,24 +13,36 @@ class AuthService {
     try {
       if (kIsWeb) {
         // 🔹 Web sign-in
-        GoogleAuthProvider authProvider = GoogleAuthProvider();
-        UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithPopup(authProvider);
-        return userCredential;
+        try {
+          // For web, use Firebase's direct auth provider instead of GoogleSignIn
+          GoogleAuthProvider authProvider = GoogleAuthProvider();
+          UserCredential userCredential =
+              await FirebaseAuth.instance.signInWithPopup(authProvider);
+          return userCredential;
+        } catch (e) {
+          if (kDebugMode) print('Web Google Sign-In Error: $e');
+          // For development, just handle the error gracefully
+          return null;
+        }
       } else {
         // 🔹 Mobile sign-in
-        await _googleSignIn.signOut(); // Ensure user selection prompt
-        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-        if (googleUser == null) return null; // User canceled sign-in
-
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          idToken: googleAuth.idToken,
-          accessToken: googleAuth.accessToken,
-        );
-
-        return await _firebaseAuth.signInWithCredential(credential);
+        try {
+          await _googleSignIn.signOut(); // Ensure user selection prompt
+          final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+          if (googleUser == null) return null; // User canceled sign-in
+  
+          final GoogleSignInAuthentication googleAuth =
+              await googleUser.authentication;
+          final AuthCredential credential = GoogleAuthProvider.credential(
+            idToken: googleAuth.idToken,
+            accessToken: googleAuth.accessToken,
+          );
+  
+          return await _firebaseAuth.signInWithCredential(credential);
+        } catch (e) {
+          if (kDebugMode) print('Mobile Google Sign-In Error: $e');
+          return null;
+        }
       }
     } catch (e) {
       if (kDebugMode) print('Google Sign-In Error: $e');
@@ -52,7 +66,14 @@ class AuthService {
   // 🔹 Sign out from Google
   Future<void> signOutGoogle() async {
     try {
-      await _googleSignIn.disconnect();
+      if (!kIsWeb) {
+        // Only try to disconnect on mobile platforms
+        try {
+          await _googleSignIn.disconnect();
+        } catch (e) {
+          if (kDebugMode) print('Google disconnect error (non-critical): $e');
+        }
+      }
       await _firebaseAuth.signOut();
     } catch (e) {
       if (kDebugMode) {

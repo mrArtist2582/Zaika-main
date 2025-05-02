@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:food_delivery_app/models/food.dart';
 import 'package:food_delivery_app/models/restauarant.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'dart:typed_data';
+// ignore: depend_on_referenced_packages
+import 'package:path/path.dart' as path;
 
 class ManageProducts extends StatefulWidget {
   const ManageProducts({super.key});
@@ -18,6 +23,11 @@ class _ManageProductsState extends State<ManageProducts> {
   final TextEditingController _addonNameController = TextEditingController();
   final TextEditingController _addonPriceController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
+
+  // Variables for file picker
+  PlatformFile? _selectedImageFile;
+  Uint8List? _webImageBytes;
+  bool _hasSelectedImage = false;
 
   final List<Addon> _addons = [];
   FoodCatagory _selectedCategory = FoodCatagory.bugers;
@@ -43,164 +53,217 @@ class _ManageProductsState extends State<ManageProducts> {
       return 'Image URL is required';
     }
     
-    // If it's a file path (doesn't start with http), consider it valid
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      return null;
+    // Only allow local image paths
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return 'Please use a local image path instead of a URL';
+    }
+
+    // Check if the path follows the correct format for the image folders
+    if (!url.contains('lib/images/') && 
+        !url.contains('images/')) {
+      return 'Image path should be in the format: lib/images/Category/image_name.jpg';
     }
     
-    // Validate URL format
-    try {
-      final uri = Uri.parse(url);
-      if (uri.scheme != 'http' && uri.scheme != 'https') {
-        return 'URL must start with http:// or https://';
-      }
-      return null;
-    } catch (e) {
-      return 'Invalid URL format';
-    }
+    return null;
   }
 
-  // Function to safely display network image with error handling
-  Widget _buildNetworkImage(String url, {double height = 150, double? width, BoxFit fit = BoxFit.cover}) {
-    // Universal fallback image to use when everything else fails
-    const String universalFallbackUrl = 'https://i.imgur.com/CsCgN7p.png';
-
-    // Check if this is a URL or a file path
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      // It's a URL, use Image.network
+  // Function to display image with error handling
+  Widget _buildNetworkImage(String imagePath, {double height = 150, double? width, BoxFit fit = BoxFit.cover}) {
+    if (kDebugMode) {
+      print('Attempting to load image: $imagePath');
+    }
+    
+    // Check if this is a network URL (shouldn't be, but just in case)
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return Image.network(
-        url,
+        imagePath, 
         height: height,
         width: width,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) {
+        errorBuilder: (_, __, ___) => _buildImageFailurePlaceholder(height, width),
+      );
+    }
+    
+    // First attempt with the direct path
+    return Image.asset(
+      imagePath,
+      height: height,
+      width: width,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        if (kDebugMode) {
+          print('Failed to load direct path: $imagePath, Error: $error');
+        }
+        
+        // Second attempt: Try without "lib/" prefix
+        if (imagePath.startsWith('lib/')) {
+          String altPath = imagePath.substring(4);
           if (kDebugMode) {
-            print('Error loading image: $error');
+            print('Trying without lib/ prefix: $altPath');
           }
-          // Try the universal fallback
-          return Image.network(
-            universalFallbackUrl,
+          
+          return Image.asset(
+            altPath,
             height: height,
             width: width,
             fit: fit,
             errorBuilder: (context, error, stackTrace) {
-              return Container(
+              if (kDebugMode) {
+                print('Failed to load without lib/ prefix: $altPath');
+              }
+              
+              // Third attempt: Use a category fallback
+              String fallbackPath = _getCategoryDefaultImage(_selectedCategory);
+              
+              return Image.asset(
+                fallbackPath,
                 height: height,
                 width: width,
-                color: Colors.grey[300],
-                child: const Center(
-                  child: Icon(Icons.error, color: Colors.red, size: 40),
-                ),
-              );
-            },
-          );
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: height,
-            width: width,
-            color: Colors.grey[200],
-            child: Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            ),
-          );
-        },
-      );
-    } else {
-      // It's a file path, use Image.asset but provide error handling
-      return Image.asset(
-        url,
-        height: height,
-        width: width,
-        fit: fit,
-        errorBuilder: (context, error, stackTrace) {
-          if (kDebugMode) {
-            print('Error loading asset image: $error');
-          }
-          
-          // For well-known missing images, use fallback images
-          final String? fallbackUrl = _getFallbackImageUrl(url);
-          if (fallbackUrl != null) {
-            return Image.network(
-              fallbackUrl,
-              height: height,
-              width: width,
-              fit: fit,
-              errorBuilder: (context, error, stackTrace) {
-                // Try the universal fallback as last resort
-                return Image.network(
-                  universalFallbackUrl,
-                  height: height,
-                  width: width,
-                  fit: fit,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
+                fit: fit,
+                errorBuilder: (context, error, stackTrace) {
+                  if (kDebugMode) {
+                    print('Failed to load fallback: $fallbackPath');
+                  }
+                  
+                  // Fourth attempt: Try fallback without lib/ prefix
+                  if (fallbackPath.startsWith('lib/')) {
+                    String finalFallbackPath = fallbackPath.substring(4);
+                    return Image.asset(
+                      finalFallbackPath,
                       height: height,
                       width: width,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                      fit: fit,
+                      errorBuilder: (_, __, ___) {
+                        // Fifth attempt: Try existing image for this category
+                        return _tryExistingCategoryImage(height, width, fit);
+                      },
                     );
-                  },
-                );
-              },
-            );
-          }
-          
-          // Try the universal fallback for unknown assets
-          return Image.network(
-            universalFallbackUrl,
-            height: height,
-            width: width,
-            fit: fit,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                height: height,
-                width: width,
-                color: Colors.grey[300],
-                child: const Center(
-                  child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
-                ),
+                  }
+                  return _tryExistingCategoryImage(height, width, fit);
+                },
               );
             },
           );
-        },
-      );
-    }
+        }
+        
+        // For paths not starting with lib/, try using the category fallback directly
+        String fallbackPath = _getCategoryDefaultImage(_selectedCategory);
+        
+        return Image.asset(
+          fallbackPath,
+          height: height,
+          width: width,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) {
+            if (fallbackPath.startsWith('lib/')) {
+              String finalFallbackPath = fallbackPath.substring(4);
+              return Image.asset(
+                finalFallbackPath,
+                height: height,
+                width: width,
+                fit: fit,
+                errorBuilder: (_, __, ___) => _tryExistingCategoryImage(height, width, fit),
+              );
+            }
+            return _tryExistingCategoryImage(height, width, fit);
+          },
+        );
+      },
+    );
   }
-
-  // Helper method to provide fallback URLs for known missing images
-  String? _getFallbackImageUrl(String originalPath) {
-    // Map of original paths to fallback URLs - using direct image URLs to avoid redirects
-    final Map<String, String> replacements = {
-      // Pizza replacements
-      'lib/images/Pizza/White_pizza.jpg': 'https://i.imgur.com/gQZSBFY.jpg',
-      'lib/images/Pizza/Pepproni_pizza.jpg': 'https://i.imgur.com/BzfG6qQ.jpg',
-      'lib/images/Pizza/Supreme_pizza.jpg': 'https://i.imgur.com/KY1mVxd.jpg',
-      'lib/images/Pizza/Vegetable_pizza.jpg': 'https://i.imgur.com/2b0qfoB.jpg',
-      'lib/images/Pizza/Margherita_pizza.jpg': 'https://i.imgur.com/xLs2ITZ.jpg',
-      // Drink replacements
-      'lib/images/Drinks/Orange_juice.jpeg': 'https://i.imgur.com/a7pKANL.jpg',
-      'lib/images/Drinks/Choco_milks.jpeg': 'https://i.imgur.com/bNDUlc9.jpg',
-      'lib/images/Drinks/Cranberry.jpg': 'https://i.imgur.com/uKmw1nK.jpg',
-      'lib/images/Drinks/Fresh_lime.jpg': 'https://i.imgur.com/TkXWACX.jpg',
-      // Dessert replacements
-      'lib/images/Desserts/Molten_lava_cake.jpg': 'https://i.imgur.com/BU3boH3.jpg',
-      'lib/images/Desserts/Cheese_cake.jpg': 'https://i.imgur.com/OJyoN8H.jpg',
-      'lib/images/Desserts/Gulab_jamun.jpg': 'https://i.imgur.com/b5zK1hd.jpg',
-      'lib/images/Desserts/Rasmalai.jpg': 'https://i.imgur.com/jZEaY3q.jpg',
-      'lib/images/Desserts/Oreo_shake.jpg': 'https://i.imgur.com/s84rCUz.jpg',
-      'lib/images/Desserts/Choco_brownie.jpeg': 'https://i.imgur.com/l6RAPzW.jpg',
-      'lib/images/Desserts/Cookie.jpeg': 'https://i.imgur.com/7oCVJgF.jpg',
-      'lib/images/Desserts/Ice_cream.jpeg': 'https://i.imgur.com/kfqJzMV.jpg',
-      'lib/images/Desserts/Mousse.jpeg': 'https://i.imgur.com/Hvq53aj.jpg',
+  
+  // Try to load a known existing image for the current category
+  Widget _tryExistingCategoryImage(double height, double? width, BoxFit fit) {
+    // Hard-coded paths to images that should exist in each category
+    final Map<FoodCatagory, List<String>> knownImages = {
+      FoodCatagory.bugers: [
+        'lib/images/Burger/veg_burger.png', 
+        'images/Burger/veg_burger.png',
+      ],
+      FoodCatagory.pizza: [
+        'lib/images/Pizza/Margherita_pizza.jpg',
+        'images/Pizza/Margherita_pizza.jpg',
+      ],
+      FoodCatagory.salads: [
+        'lib/images/Salad/Caeser_salad.jpeg',
+        'images/Salad/Caeser_salad.jpeg',
+      ],
+      FoodCatagory.desserts: [
+        'lib/images/Desserts/Cheesecake.jpg',
+        'images/Desserts/Cheesecake.jpg',
+      ],
+      FoodCatagory.drinks: [
+        'lib/images/Drinks/Virgin_mojito.jpeg',
+        'images/Drinks/Virgin_mojito.jpeg',
+      ],
+      FoodCatagory.sides: [
+        'lib/images/Sides/Garlic_sides.jpg',
+        'images/Sides/Garlic_sides.jpg',
+      ],
     };
     
-    return replacements[originalPath];
+    // Try each path for the current category
+    final paths = knownImages[_selectedCategory] ?? knownImages[FoodCatagory.bugers]!;
+    
+    return _tryMultiplePaths(paths, height, width, fit);
+  }
+  
+  // Helper to try multiple image paths
+  Widget _tryMultiplePaths(List<String> paths, double height, double? width, BoxFit fit) {
+    if (paths.isEmpty) {
+      return _buildImageFailurePlaceholder(height, width);
+    }
+    
+    String path = paths.first;
+    List<String> remaining = paths.sublist(1);
+    
+    return Image.asset(
+      path,
+      height: height,
+      width: width,
+      fit: fit,
+      errorBuilder: (_, __, ___) {
+        if (remaining.isEmpty) {
+          return _buildImageFailurePlaceholder(height, width);
+        } else {
+          return _tryMultiplePaths(remaining, height, width, fit);
+        }
+      },
+    );
+  }
+  
+  // Simple placeholder for when all image loading attempts fail
+  Widget _buildImageFailurePlaceholder(double height, double? width) {
+    return Container(
+      height: height,
+      width: width,
+      color: Colors.grey[300],
+      child: const Center(
+        child: Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
+      ),
+    );
+  }
+
+  // Helper method to get default image path based on food category
+  String _getCategoryDefaultImage(FoodCatagory category) {
+    // Return a default image path based on the food category
+    switch (category) {
+      case FoodCatagory.bugers:
+        return 'lib/images/Burger/burger.jpg';
+      case FoodCatagory.pizza:
+        return 'lib/images/Pizza/Margherita_pizza.jpg';
+      case FoodCatagory.sides:
+        return 'lib/images/Sides/Garlic_sides.jpg';
+      case FoodCatagory.salads:
+        return 'lib/images/Salad/Caeser_salad.jpeg';
+      case FoodCatagory.drinks:
+        return 'lib/images/Drinks/Virgin_mojito.jpeg';
+      case FoodCatagory.desserts:
+        return 'lib/images/Desserts/Cheesecake.jpg';
+      // ignore: unreachable_switch_default
+      default:
+        return 'lib/images/Burger/burger.jpg';
+    }
   }
 
   void _addAddon() {
@@ -223,6 +286,65 @@ class _ManageProductsState extends State<ManageProducts> {
     setState(() {
       _addons.removeAt(index);
     });
+  }
+
+  // Method to pick an image using FilePicker
+  Future<void> _pickImage() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+      
+      if (result != null) {
+        setState(() {
+          _selectedImageFile = result.files.first;
+          _hasSelectedImage = true;
+          
+          // Handle web platform specifically
+          if (kIsWeb) {
+            _webImageBytes = result.files.first.bytes;
+            // For web, we'll create a path-like structure to mimic the folder structure
+            String fileName = result.files.first.name;
+            // ignore: unused_local_variable
+            String extension = path.extension(fileName).toLowerCase();
+            String categoryFolder = _getCategoryFolder(_selectedCategory);
+            _imageUrlController.text = 'lib/images/$categoryFolder/$fileName';
+          } else {
+            // For mobile platforms, handle file path
+            _imageUrlController.text = result.files.first.path!;
+          }
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error picking image: $e');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
+    }
+  }
+  
+  // Helper method to get the appropriate folder name based on category
+  String _getCategoryFolder(FoodCatagory category) {
+    switch (category) {
+      case FoodCatagory.bugers:
+        return 'Burger';
+      case FoodCatagory.pizza:
+        return 'Pizza';
+      case FoodCatagory.sides:
+        return 'Sides';
+      case FoodCatagory.salads:
+        return 'Salad';
+      case FoodCatagory.drinks:
+        return 'Drinks';
+      case FoodCatagory.desserts:
+        return 'Desserts';
+      // ignore: unreachable_switch_default
+      default:
+        return 'Burger';
+    }
   }
 
   Future<void> _saveProduct() async {
@@ -303,20 +425,23 @@ class _ManageProductsState extends State<ManageProducts> {
       _nameController.clear();
       _descriptionController.clear();
       _priceController.clear();
-      _addons.clear();
+      _imageUrlController.clear();
       _addonNameController.clear();
       _addonPriceController.clear();
-      _imageUrlController.clear();
+      _addons.clear();
       _selectedCategory = FoodCatagory.bugers;
       _isEditing = false;
       _editingIndex = null;
+      
+      // Reset image picker variables
+      _selectedImageFile = null;
+      _webImageBytes = null;
+      _hasSelectedImage = false;
     });
   }
 
-  void _startEditing(Food food, int index) {
+  void _editProduct(Food food, int index) {
     setState(() {
-      _isEditing = true;
-      _editingIndex = index;
       _nameController.text = food.name;
       _descriptionController.text = food.description;
       _priceController.text = food.price.toString();
@@ -324,7 +449,63 @@ class _ManageProductsState extends State<ManageProducts> {
       _selectedCategory = food.catagory;
       _addons.clear();
       _addons.addAll(food.availableAddons);
+      _isEditing = true;
+      _editingIndex = index;
+      
+      // Reset image selection state for edit
+      _selectedImageFile = null;
+      _webImageBytes = null;
+      _hasSelectedImage = false; // We're loading from existing path
     });
+  }
+
+  void _showDeleteConfirmation(Food food, int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Product"),
+          content: Text("Are you sure you want to delete '${food.name}'?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              onPressed: () {
+                _deleteProduct(food, index);
+                Navigator.of(context).pop();
+              },
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteProduct(Food food, int index) {
+    try {
+      final restaurant = Provider.of<Restauarant>(context, listen: false);
+      restaurant.removeFood(food);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product deleted')),
+      );
+      // If we were editing this product, clear the form
+      if (_isEditing && _editingIndex == index) {
+        _clearForm();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting product: $e')),
+      );
+      if (kDebugMode) {
+        print('Delete product error: $e');
+      }
+    }
   }
 
   @override
@@ -356,26 +537,69 @@ class _ManageProductsState extends State<ManageProducts> {
               ),
               child: Column(
                 children: [
-                  if (_imageUrlController.text.isNotEmpty)
+                  if (_hasSelectedImage && kIsWeb && _webImageBytes != null)
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                      child: Image.memory(
+                        _webImageBytes!,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else if (_hasSelectedImage && !kIsWeb && _selectedImageFile != null && _selectedImageFile!.path != null)
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                      child: Image.file(
+                        File(_selectedImageFile!.path!),
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else if (_imageUrlController.text.isNotEmpty)
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                       child: _buildNetworkImage(_imageUrlController.text),
                     ),
+                  
+                  // Image path field and image picker button
                   Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: TextFormField(
-                      controller: _imageUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Image URL',
-                        hintText: 'https://example.com/image.jpg',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: _validateImageUrl,
-                      onChanged: (value) {
-                        setState(() {
-                          // Trigger UI update when URL changes
-                        });
-                      },
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _imageUrlController,
+                            decoration: const InputDecoration(
+                              labelText: 'Image Path',
+                              hintText: 'lib/images/category/food_name.jpg',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: _validateImageUrl,
+                            onChanged: (value) {
+                              setState(() {
+                                // Reset selected image flag if path is manually changed
+                                if (_hasSelectedImage) {
+                                  _hasSelectedImage = false;
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: _pickImage,
+                          icon: const Icon(Icons.image),
+                          label: const Text('Pick Image'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 16,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -526,9 +750,20 @@ class _ManageProductsState extends State<ManageProducts> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () => _startEditing(food, index),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _editProduct(food, index),
+                          tooltip: 'Edit Product',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _showDeleteConfirmation(food, index),
+                          tooltip: 'Delete Product',
+                        ),
+                      ],
                     ),
                   ),
                 );

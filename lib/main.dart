@@ -6,16 +6,21 @@
   import 'package:provider/provider.dart';
   import 'package:food_delivery_app/firebase_options.dart';
   import 'package:food_delivery_app/intro/splash_screen.dart';
-  import 'package:food_delivery_app/intro/splash_screen.dart'; 
   import 'package:food_delivery_app/models/restauarant.dart';
   import 'package:food_delivery_app/themes/theme_provider.dart';
   import 'package:food_delivery_app/pages/admin/admin_login.dart';
 
   void main() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-   // init notification
-   NotiService().initNotification();
+    
+    try {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    } catch (e) {
+      debugPrint('Firebase initialization error: $e');
+    }
+    
+    // init notification
+    NotiService().initNotification();
     runApp(const AppRoot());
   }
   

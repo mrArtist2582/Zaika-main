@@ -23,123 +23,129 @@ class _AddonSelectionBottomSheetState extends State<AddonSelectionBottomSheet> {
 
   // Helper method to build the appropriate image widget
   Widget _buildFoodImage(String imagePath) {
-    // Universal fallback image to use when everything else fails
-    const String universalFallbackUrl = 'https://i.imgur.com/CsCgN7p.png';
-    
-    // Check if the path is a URL
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      // Use Image.network for URLs
-      return Image.network(
-        imagePath,
-        height: 70,
-        width: 70,
-        fit: BoxFit.cover,
-        // Error handling
-        errorBuilder: (context, error, stackTrace) {
-          debugPrint('Error loading network image in bottom sheet: $error');
-          return Image.network(
-            universalFallbackUrl,
+    // First attempt to load with direct asset path
+    return Image.asset(
+      imagePath,
+      height: 70,
+      width: 70,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('Error loading direct image path: $error');
+        
+        // Try without lib/ prefix if original path fails
+        if (imagePath.startsWith('lib/')) {
+          String altPath = imagePath.substring(4);
+          debugPrint('Trying without lib/ prefix: $altPath');
+          
+          return Image.asset(
+            altPath,
             height: 70,
             width: 70,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              return Container(
+              debugPrint('Error loading image without lib/ prefix: $error');
+              
+              // Try a category-based fallback
+              String category = _extractCategoryFromPath(imagePath);
+              String fallbackPath = _getCategoryFallbackImage(category);
+              
+              return Image.asset(
+                fallbackPath,
                 height: 70,
                 width: 70,
-                color: Colors.grey[300],
-                child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // Final attempt: use a network fallback
+                  String? networkFallback = _getMissingPizzaReplacement(imagePath);
+                  if (networkFallback != null) {
+                    return Image.network(
+                      networkFallback,
+                      height: 70,
+                      width: 70,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return _buildFallbackContainer();
+                      },
+                    );
+                  } else {
+                    return _buildFallbackContainer();
+                  }
+                },
               );
             },
           );
-        },
-        // Loading indicator
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
+        } else {
+          // For non-lib paths, try fallback directly
+          String category = _extractCategoryFromPath(imagePath);
+          String fallbackPath = _getCategoryFallbackImage(category);
+          
+          return Image.asset(
+            fallbackPath, 
             height: 70,
             width: 70,
-            color: Colors.grey[200],
-            child: Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                    : null,
-                strokeWidth: 2.0,
-              ),
-            ),
-          );
-        },
-      );
-    } else {
-      // Check if this is one of the problematic pizza, drinks, or desserts images
-      if ((imagePath.contains('Pizza') || imagePath.contains('Drinks') || imagePath.contains('Desserts')) && _getMissingPizzaReplacement(imagePath) != null) {
-        // Return a network image replacement
-        return Image.network(
-          _getMissingPizzaReplacement(imagePath)!,
-          height: 70,
-          width: 70,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint('Error loading fallback image in bottom sheet: $error');
-            return Image.network(
-              universalFallbackUrl,
-              height: 70,
-              width: 70,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              // Final attempt: use a network fallback
+              String? networkFallback = _getMissingPizzaReplacement(imagePath);
+              if (networkFallback != null) {
+                return Image.network(
+                  networkFallback,
                   height: 70,
                   width: 70,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return _buildFallbackContainer();
+                  },
                 );
-              },
-            );
-          },
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              height: 70,
-              width: 70,
-              color: Colors.grey[200],
-              child: Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                      : null,
-                  strokeWidth: 2.0,
-                ),
-              ),
-            );
-          },
-        );
-      }
-      
-      // Use Image.asset for other local asset paths
-      return Image.asset(
-        imagePath,
-        height: 70,
-        width: 70,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          debugPrint('Error loading asset image in bottom sheet: $error');
-          return Image.network(
-            universalFallbackUrl,
-            height: 70,
-            width: 70,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                height: 70,
-                width: 70,
-                color: Colors.grey[300],
-                child: const Icon(Icons.broken_image, color: Colors.grey),
-              );
+              } else {
+                return _buildFallbackContainer();
+              }
             },
           );
-        },
-      );
+        }
+      },
+    );
+  }
+  
+  // Extract category from image path
+  String _extractCategoryFromPath(String path) {
+    final pathParts = path.split('/');
+    for (final part in pathParts) {
+      if (['Burger', 'Pizza', 'Salad', 'Desserts', 'Drinks', 'Sides'].contains(part)) {
+        return part;
+      }
     }
+    return 'Burger'; // Default category if none found
+  }
+  
+  // Get category-specific fallback image
+  String _getCategoryFallbackImage(String category) {
+    switch (category) {
+      case 'Pizza':
+        return 'lib/images/Pizza/Margherita_pizza.jpg';
+      case 'Burger':
+        return 'lib/images/Burger/veg_burger.png';
+      case 'Salad':
+        return 'lib/images/Salad/Caeser_salad.jpeg';
+      case 'Desserts':
+        return 'lib/images/Desserts/Cheesecake.jpg';
+      case 'Drinks':
+        return 'lib/images/Drinks/Virgin_mojito.jpeg';
+      case 'Sides':
+        return 'lib/images/Sides/Loaded_fries.jpeg';
+      default:
+        return 'lib/images/Burger/veg_burger.png';
+    }
+  }
+  
+  // Simple fallback container widget
+  Widget _buildFallbackContainer() {
+    return Container(
+      height: 70,
+      width: 70,
+      color: Colors.grey[300],
+      child: const Icon(Icons.fastfood, color: Colors.grey),
+    );
   }
 
   // Helper method to provide fallback URLs for known missing images
