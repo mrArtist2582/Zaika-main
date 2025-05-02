@@ -9,12 +9,9 @@ plugins {
 }
 
 android {
-    namespace 'com.example.food_delivery_app'
-    namespace 'com.simform.flutter_credit_card'
-    compileSdkVersion 33
-    namespace = "com.example.food_delivery_app"  // Ensure the namespace is correctly set here
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    namespace "com.example.food_delivery_app"
+    compileSdkVersion flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -26,21 +23,18 @@ android {
     }
 
     defaultConfig {
-      
- 
         applicationId "com.example.food_delivery_app"
         minSdkVersion 23
-        targetSdkVersion 33
+        targetSdkVersion flutter.targetSdkVersion
         versionCode 2002
         versionName "1.0"
-   
     }
 
     buildTypes {
         release {
-              minifyEnabled false  
+            minifyEnabled false  
             shrinkResources false
-            signingConfig = signingConfigs.debug  // Replace with your actual signing config for release
+            signingConfig signingConfigs.debug  // Replace with your actual signing config for release
         }
     }
 

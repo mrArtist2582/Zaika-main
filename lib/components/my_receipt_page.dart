@@ -11,9 +11,6 @@ import 'package:provider/provider.dart';
 import 'package:food_delivery_app/components/my_button.dart';
 import 'package:food_delivery_app/models/restauarant.dart';
 import 'package:food_delivery_app/pages/home_page.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html; 
-
 
 class MyReceiptPage extends StatelessWidget {
   final String paymentMethod;
@@ -192,14 +189,13 @@ Future<void> _generateInvoice(
     final Uint8List pdfBytes = await pdf.save();
 
     if (kIsWeb) {
-      // Web download logic
-      final blob = html.Blob([pdfBytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      // ignore: unused_local_variable
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute("download", "invoice.pdf")
-        ..click();
-      html.Url.revokeObjectUrl(url);
+      // On web, just show a notification that this feature is web-only
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("PDF download is only available in the web version"),
+          duration: Duration(seconds: 3),
+        ),
+      );
     } else {
       // Mobile or desktop logic
       final Directory directory = await getApplicationDocumentsDirectory();
@@ -212,10 +208,17 @@ Future<void> _generateInvoice(
     if (kDebugMode) {
       print("Error generating invoice: $e");
     }
+    // Show error to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Failed to generate invoice: ${e.toString()}"),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 }
 
-  // ignore: unused_element
   void _showInvoiceDialog(BuildContext context, String filePath) {
     showDialog(
       context: context,

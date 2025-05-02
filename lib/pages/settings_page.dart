@@ -7,7 +7,7 @@ import 'package:food_delivery_app/pages/contact.dart';
 import 'package:food_delivery_app/services/auth/login_or_register.dart';
 import 'package:food_delivery_app/themes/theme_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:food_delivery_app/pages/admin/admin_login.dart';
+import 'package:food_delivery_app/admin/admin_login.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});

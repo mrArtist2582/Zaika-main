@@ -35,7 +35,9 @@ dependencies:
   google_sign_in_web: ^0.12.4+4
   universal_html: ^2.2.4
   file_picker: ^10.1.2
-
+  fl_chart: ^0.71.0
+  pie_chart: ^5.4.0
+  flutter_admin_scaffold: ^1.4.0
 
 dependency_overrides:
   collection: ^1.19.1
